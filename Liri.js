@@ -4,18 +4,17 @@ var fs = require("fs")
 
 require("dotenv").config();
 
-var request = require("request");
 var axios = require("axios")
 var Spotify = require("node-spotify-api")
 
 var input = process.argv;
 var subject = input[2];
-var answer = input[3];
+var answer = input.slice(3).join(" ");
 
 switch(subject) {
 
     case "movie-this":
-    omdbapi(answer);
+    movie(answer);
     break;
 
     case "spotify-this-song":
@@ -33,13 +32,10 @@ switch(subject) {
 
 
 // FINDING MOVIES
-
-function omdbapi(answer) {
     
-    var Movie = function() {
+function movie(data) {
         var divider = "\n_____________________\n\n";
-        this.findMovie = function(movie) {
-            var URL = "http://www.omdbapi.com/?t=" + movie + "&y=&plot=&short&apikey=trilogy";
+        var URL = "http://www.omdbapi.com/?t=" + data + "&y=&plot=&short&apikey=trilogy";
 
             axios
             .get(URL)
@@ -50,46 +46,48 @@ function omdbapi(answer) {
                 var movieData = [
                     "Title: " + jsonData.title,
                     "Year: " + jsonData.year,
-                    "Rating: " + jsonData.rated,
+                    "Rotten Tomatoes Rating: " + jsonData.ratings[1],
+                    "Imdb Rating: " + jsonData.imbdRating,
+                    "Country: " + jsonData.country,
+                    "Language: " + jsonData.language,
+                    "Cast: " + jsonData.actors,
                     "Plot: " + jsonData.plot
-                    // rotten tomatoes rating, country, language, actors list
                 ].join("\n\n")
-                // default "Mr Nobody"
 
                 fs.appendFile("log.txt", movieData = divider, function(err) {
                     if (err) throw err;
                     console.log("movieData: " + movieData);
                 });
             });
-        };
     }
-
-}
 
 
 // FINDING MUSIC
 
 function spotify(answer) {
 
-    var Spotify = require("node-spotify-api");
+    
 
-    var Spotify = new Spotify ({
+    var spotify = new Spotify ({
         id: "89104bd82e884c358eb8dab68750b016",
         secret: "946e63777d7349d4bc2b584d429f454d"
     });
     
-    Spotify
-    .request("https://api.spotify.com/v1/tracks/7yCPwWs66K8Ba5lFuU2bcx")
+    spotify
+    .request("https://api.spotify.com/v1/search?type=track&q="+ answer)
     .then(function(data){
-        console.log(data);
+
+        var spotData = data.tracks.items[1].album;
+        console.log(spotData);
         
         var musicData = [
-            "Artist: " + jsonData.artists,
-            "Album: " + jsonData.name,
-            // preview link for song, if no song default to "the sign" by ace of base
+            "Artist: " + spotData.artists[0].name,
+            "Album: " + spotData.name,
+            "Url: " + spotData.external_urls.spotify,
+            "Song: " + spotData.name
         ]
     
-        fs.appendFile("log.txt", musicData = divider, function(err) {
+        fs.appendFile("log.txt", musicData, function(err) {
             if (err) throw err;
             console.log("musicData: " + musicData);
         });
@@ -99,23 +97,22 @@ function spotify(answer) {
 
 // FIND BANDS
 
-function bands(answer) {
-
-    var Bands = function() {
+    function bands(artist) {
         var divider = "\n_____________________\n\n";
-        this.findBands = function(band) {
             var URL = "https://rest.bandsintown.com/artists/" + artist + "/events?app_id=codingbootcamp";
+            
             axios
             .get(URL)
             .then(function(response){
                 var jsonData = response.data;
                 console.log(jsonData);
+
                 
                 var bandData = [
-                    // need to add info for name of venue, location, date of event (using moment mm/dd/yy)
                     "Artist Name: " + jsonData.name,
-                    "Up Coming Events: " + jsonData.upcoming_event_count,
-                    "Tour Dates: " + "href", jsonData.url
+                    "Tour Dates: " + "href", jsonData.url,
+                    "Location: " + jsonData.venue,
+                    "Venue: " + jsonData.venue
                 ].join("\n\n")
     
                 fs.appendFile("log.txt", bandData = divider, function(err) {
@@ -123,9 +120,7 @@ function bands(answer) {
                     console.log("badData: " + bandData);
                 });
             });
-        };
     }
-}
 
 function doIt() {
     fs.readFile("random.txt", "utf8", function(error, data){
@@ -147,7 +142,3 @@ function doIt() {
         }
     });
 };
-
-
-module.exports = Movie, Spotify, Bands;
-
